@@ -1,0 +1,39 @@
+{
+  "name": "交叉循环示例",
+  "id": "cross-loop-demo",
+  "description": "演示对象列表与范围数组的交叉遍历生成JSON",
+  "count": 1,
+  "template": {
+    "#nested": {
+      "loops": [
+        {
+          "type": "array",
+          "variable": "$obj",
+          "array": [
+            { "name": "tvoc", "radd": 100 },
+            { "name": "pm25", "radd": 200 },
+            { "name": "co2", "radd": 300 }
+          ]
+        },
+        {
+          "type": "range",
+          "variable": "$sadd",
+          "start": 1,
+          "end": 3,
+          "step": 1
+        }
+      ],
+      "template": {
+        "key": "{{$index + 1}}",
+        "name": "d4ad2034ddess-{{$sadd}}-{{$obj.name}}",
+        "sadd": "{{$sadd}}",
+        "rtype": 3,
+        "radd": "{{$obj.radd}}",
+        "dtype": 1,
+        "magn": "1",
+        "report": 0,
+        "ampl": "0"
+      }
+    }
+  }
+}

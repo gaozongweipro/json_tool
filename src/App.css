@@ -1,0 +1,223 @@
+/* 应用主体样式 */
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f0f2f5;
+}
+
+/* 头部样式 */
+.app-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 24px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  color: white;
+}
+
+.app-header p {
+  margin: 8px 0 0 0;
+  font-size: 16px;
+  opacity: 0.9;
+  color: white;
+}
+
+/* 主内容区域 */
+.app-main {
+  flex: 1;
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 底部样式 */
+.app-footer {
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+  padding: 16px 24px;
+  text-align: center;
+  color: #666;
+}
+
+.app-footer p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .app-main {
+    padding: 16px;
+  }
+  
+  .app-header {
+    padding: 16px;
+  }
+  
+  .app-header h1 {
+    font-size: 24px;
+  }
+  
+  .app-header p {
+    font-size: 14px;
+  }
+}
+
+/* 全局样式重置 */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Ant Design 样式覆盖 */
+.ant-layout {
+  background: transparent;
+}
+
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.ant-btn-primary {
+  background: #667eea;
+  border-color: #667eea;
+}
+
+.ant-btn-primary:hover {
+  background: #5a6fd8;
+  border-color: #5a6fd8;
+}
+
+/* Monaco Editor 样式调整 */
+.monaco-editor {
+  border-radius: 4px;
+}
+
+/* 表格样式优化 */
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f5f7fa;
+}
+
+/* 统计卡片样式 */
+.ant-statistic {
+  text-align: center;
+}
+
+.ant-statistic-title {
+  font-size: 14px;
+  color: #666;
+}
+
+.ant-statistic-content {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 加载状态样式 */
+.ant-spin-container {
+  min-height: 200px;
+}
+
+/* 表单样式优化 */
+.ant-form-item-label > label {
+  font-weight: 500;
+}
+
+/* 折叠面板样式 */
+.ant-collapse-ghost > .ant-collapse-item > .ant-collapse-header {
+  padding: 12px 0;
+  font-weight: 500;
+}
+
+.ant-collapse-ghost > .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box {
+  padding: 12px 0;
+}
+
+/* 标签页样式 */
+.ant-tabs-tab {
+  font-weight: 500;
+}
+
+.ant-tabs-tab-active {
+  font-weight: 600;
+}
+
+/* 分页样式 */
+.ant-pagination {
+  text-align: center;
+  margin-top: 16px;
+}
+
+/* 消息提示样式 */
+.ant-message {
+  z-index: 9999;
+}
+
+/* 模态框样式 */
+.ant-modal-header {
+  border-radius: 8px 8px 0 0;
+}
+
+.ant-modal-content {
+  border-radius: 8px;
+}
+
+/* 下拉菜单样式 */
+.ant-dropdown-menu {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 工具提示样式 */
+.ant-tooltip {
+  z-index: 9999;
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

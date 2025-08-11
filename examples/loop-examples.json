@@ -1,0 +1,136 @@
+{
+  "mode1_fixed_fields": {
+    "description": "模式一：固定字段值生成指定数量的JSON",
+    "template": {
+      "id": "{{uuid()}}",
+      "name": "{{randomChoice([\"张三\", \"李四\", \"王五\"])}}",
+      "age": "{{randomInt(18, 65)}}",
+      "email": "{{randomString(8)}}@example.com",
+      "score": "{{randomFloat(0, 100, 2)}}",
+      "createdAt": "{{randomDate(\"2020-01-01\", \"2024-12-31\", \"YYYY-MM-DD\")}}"
+    },
+    "count": 10
+  },
+
+  "mode2_single_loop": {
+    "description": "模式二：单层循环 - 为每个部门生成信息",
+    "template": {
+      "companyId": "{{uuid()}}",
+      "companyName": "科技有限公司",
+      "#each": {
+        "array": ["技术部", "产品部", "设计部", "运营部"],
+        "template": {
+          "dept_{{$index}}": {
+            "departmentName": "{{$item}}",
+            "departmentId": "DEPT_{{$index}}",
+            "employeeCount": "{{randomInt(5, 20)}}",
+            "budget": "{{randomFloat(100000, 500000, 2)}}",
+            "manager": "{{randomChoice([\"张经理\", \"李经理\", \"王经理\"])}}"
+          }
+        }
+      }
+    },
+    "count": 3
+  },
+
+  "mode2_nested_loop": {
+    "description": "模式二：嵌套循环 - 为每个部门的每个员工生成数据",
+    "template": {
+      "organizationId": "{{uuid()}}",
+      "#nested": {
+        "loops": [
+          {
+            "type": "array",
+            "variable": "department",
+            "array": ["技术部", "产品部"]
+          },
+          {
+            "type": "range",
+            "variable": "empId",
+            "start": 1,
+            "end": 4
+          }
+        ],
+        "template": {
+          "{{department}}_employee_{{empId}}": {
+            "employeeId": "EMP_{{department_index}}_{{empId}}",
+            "name": "{{randomChoice([\"张三\", \"李四\", \"王五\", \"赵六\"])}}",
+            "department": "{{department}}",
+            "position": "{{randomChoice([\"工程师\", \"经理\", \"专员\", \"主管\"])}}",
+            "salary": "{{randomFloat(8000, 25000, 2)}}",
+            "joinDate": "{{randomDate(\"2020-01-01\", \"2024-12-31\", \"YYYY-MM-DD\")}}"  
+          }
+        }
+      }
+    },
+    "count": 2
+  },
+
+  "mode2_array_generation": {
+    "description": "模式二：数组中的循环生成 - 用户订单数据",
+    "template": {
+      "userId": "{{uuid()}}",
+      "userName": "{{randomChoice([\"张三\", \"李四\", \"王五\"])}}",
+      "orders": [
+        {
+          "#generate": {
+            "mode": "fixed",
+            "count": "{{randomInt(2, 5)}}",
+            "template": {
+              "orderId": "ORDER_{{$generateIndex}}_{{uuid()}}",
+              "productName": "{{randomChoice([\"手机\", \"电脑\", \"平板\", \"耳机\"])}}",
+              "amount": "{{randomFloat(100, 2000, 2)}}",
+              "status": "{{randomChoice([\"pending\", \"completed\", \"cancelled\"])}}",
+              "orderDate": "{{randomDate(\"2024-01-01\", \"2024-12-31\", \"YYYY-MM-DD HH:mm:ss\")}}"  
+            }
+          }
+        }
+      ],
+      "addresses": [
+        {
+          "#generate": {
+            "mode": "loop",
+            "loops": [
+              {
+                "type": "array",
+                "variable": "city",
+                "array": ["北京", "上海"]
+              }
+            ],
+            "template": {
+              "addressId": "ADDR_{{city_index}}",
+              "city": "{{city}}",
+              "district": "{{randomChoice([\"朝阳区\", \"海淀区\", \"浦东区\", \"徐汇区\"])}}",
+              "street": "{{randomString(6)}}路{{randomInt(1, 999)}}号",
+              "isDefault": "{{city_index === 0}}"
+            }
+          }
+        }
+      ]
+    },
+    "count": 5
+  },
+
+  "mode2_complex_dependency": {
+    "description": "模式二：复杂字段依赖 - 循环值依赖其他字段",
+    "template": {
+      "projectId": "{{uuid()}}",
+      "projectName": "{{randomChoice([\"项目Alpha\", \"项目Beta\", \"项目Gamma\"])}}",
+      "#for": {
+        "start": 1,
+        "end": 4,
+        "template": {
+          "task_{{$i}}": {
+            "taskId": "TASK_{{$i}}",
+            "taskName": "任务{{$i}}",
+            "priority": "{{$i <= 2 ? \"high\" : \"normal\"}}",
+            "estimatedHours": "{{$i * randomInt(2, 8)}}",
+            "assignee": "{{randomChoice([\"开发者A\", \"开发者B\", \"开发者C\"])}}",
+            "dependencies": "{{$i > 1 ? [\"task_\" + ($i - 1)] : []}}"
+          }
+        }
+      }
+    },
+    "count": 3
+  }
+}
