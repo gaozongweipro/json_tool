@@ -1,6 +1,6 @@
 <template>
   <div class="json-preview">
-    <el-card header="生成结果" shadow="never">
+    <el-card shadow="never">
       <template #header>
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span>生成结果</span>
@@ -31,15 +31,22 @@
         </div>
       </template>
 
-      <el-loading :loading="loading" element-loading-text="正在生成数据...">
+      <div v-loading="loading" element-loading-text="正在生成数据...">
+        <!-- 调试信息 -->
+        <div v-if="result" style="margin-bottom: 16px; padding: 8px; background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 4px;">
+          <p style="margin: 0; font-size: 12px; color: #0369a1;">
+            调试信息: result存在={{ !!result }}, data存在={{ !!result?.data }}, data长度={{ result?.data?.length || 0 }}
+          </p>
+        </div>
+
         <div v-if="!result && !loading" class="empty-state">
           <el-empty description="暂无数据，请先配置规则并生成数据" />
         </div>
 
-        <div v-else-if="result?.data" class="preview-content">
+        <div v-else-if="result?.data && result.data.length > 0" class="preview-content">
           <!-- 统计信息 -->
           <div v-if="result.stats" class="stats-section">
-            <el-descriptions :column="4" size="small">
+            <el-descriptions :column="4" size="small" border>
               <el-descriptions-item label="数据条数">
                 {{ result.data.length }}
               </el-descriptions-item>
@@ -57,93 +64,104 @@
 
           <!-- 预览模式切换 -->
           <div class="preview-controls">
-            <a-radio-group v-model:value="previewMode" size="small">
-              <a-radio-button value="table">表格视图</a-radio-button>
-              <a-radio-button value="json">JSON视图</a-radio-button>
-              <a-radio-button value="raw">原始数据</a-radio-button>
-            </a-radio-group>
-            
-            <a-input-number
-              v-if="previewMode === 'table'"
-              v-model:value="pageSize"
-              :min="10"
-              :max="100"
-              :step="10"
-              size="small"
-              addon-before="每页"
-              addon-after="条"
-              style="width: 150px; margin-left: 16px"
-            />
+            <el-radio-group v-model="previewMode" size="small">
+              <el-radio-button value="table">表格视图</el-radio-button>
+              <el-radio-button value="json">JSON视图</el-radio-button>
+              <el-radio-button value="raw">原始数据</el-radio-button>
+            </el-radio-group>
           </div>
 
           <!-- 表格视图 -->
           <div v-if="previewMode === 'table'" class="table-view">
-            <a-table
-              :columns="tableColumns"
-              :data-source="paginatedData"
-              :pagination="{
-                current: currentPage,
-                pageSize: pageSize,
-                total: result.data.length,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
-              }"
+            <el-table
+              :data="paginatedData"
+              border
               size="small"
-              :scroll="{ x: 'max-content' }"
-              @change="handleTableChange"
+              style="width: 100%"
+              max-height="500"
+            >
+              <el-table-column
+                v-for="column in tableColumns"
+                :key="column.key"
+                :prop="column.key"
+                :label="column.title"
+                :width="column.width"
+                show-overflow-tooltip
+              />
+            </el-table>
+            
+            <el-pagination
+              v-if="result.data.length > pageSize"
+              v-model:current-page="currentPage"
+              v-model:page-size="pageSize"
+              :page-sizes="[10, 20, 50, 100]"
+              :total="result.data.length"
+              layout="total, sizes, prev, pager, next, jumper"
+              style="margin-top: 16px; text-align: center"
             />
           </div>
 
           <!-- JSON视图 -->
           <div v-else-if="previewMode === 'json'" class="json-view">
-            <div ref="jsonEditorContainer" style="height: 400px; border: 1px solid #d9d9d9"></div>
+            <el-input
+              type="textarea"
+              :model-value="JSON.stringify(result.data, null, 2)"
+              :rows="20"
+              readonly
+              style="font-family: 'Courier New', monospace; font-size: 12px;"
+            />
           </div>
 
           <!-- 原始数据视图 -->
           <div v-else-if="previewMode === 'raw'" class="raw-view">
-            <a-textarea
-              :value="JSON.stringify(result.data, null, 2)"
+            <el-input
+              type="textarea"
+              :model-value="JSON.stringify(result.data, null, 2)"
               :rows="20"
               readonly
-              style="font-family: 'Courier New', monospace"
+              style="font-family: 'Courier New', monospace; font-size: 12px;"
             />
           </div>
         </div>
-      </el-loading>
+
+        <!-- 数据为空的情况 -->
+        <div v-else-if="result?.data && result.data.length === 0" class="empty-data">
+          <el-alert
+            title="生成结果为空"
+            description="数据生成成功，但结果为空。请检查字段配置和生成策略。"
+            type="warning"
+            show-icon
+          />
+        </div>
+      </div>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   ElCard,
   ElSpace,
   ElTag,
   ElButton,
-  ElLoading,
   ElEmpty,
   ElDescriptions,
   ElDescriptionsItem,
   ElRadioGroup,
   ElRadioButton,
-  ElInputNumber,
   ElTable,
   ElTableColumn,
   ElInput,
-  ElTabs,
-  ElTabPane,
   ElPagination,
   ElMessage,
-  ElIcon
+  ElIcon,
+  ElAlert
 } from 'element-plus'
 import {
   CopyDocument,
   Download
 } from '@element-plus/icons-vue'
-import * as monaco from 'monaco-editor'
-import { saveAs } from 'file-saver'
 import type { GenerationResult } from '../types'
 
 // Props
@@ -156,12 +174,15 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false
 })
 
+// Emits
+const emit = defineEmits<{
+  export: [format: string]
+}>()
+
 // State
 const previewMode = ref<'table' | 'json' | 'raw'>('table')
 const currentPage = ref(1)
-const pageSize = ref(50)
-const jsonEditorContainer = ref<HTMLElement>()
-let jsonEditor: monaco.editor.IStandaloneCodeEditor | null = null
+const pageSize = ref(20)
 
 // 计算属性
 const tableColumns = computed(() => {
@@ -170,9 +191,7 @@ const tableColumns = computed(() => {
   const firstItem = props.result.data[0]
   const columns = Object.keys(firstItem).map(key => ({
     title: key,
-    dataIndex: key,
     key: key,
-    ellipsis: true,
     width: 150
   }))
   
@@ -185,10 +204,7 @@ const paginatedData = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
   
-  return props.result.data.slice(start, end).map((item, index) => ({
-    ...item,
-    key: start + index
-  }))
+  return props.result.data.slice(start, end)
 })
 
 // 格式化文件大小
@@ -200,35 +216,6 @@ const formatFileSize = (bytes: number): string => {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-// 初始化JSON编辑器
-const initJsonEditor = async () => {
-  if (!jsonEditorContainer.value) return
-  
-  jsonEditor = monaco.editor.create(jsonEditorContainer.value, {
-    value: props.result ? JSON.stringify(props.result.data, null, 2) : '',
-    language: 'json',
-    theme: 'vs',
-    readOnly: true,
-    automaticLayout: true,
-    minimap: { enabled: false },
-    scrollBeyondLastLine: false,
-    fontSize: 14
-  })
-}
-
-// 更新JSON编辑器内容
-const updateJsonEditor = () => {
-  if (jsonEditor && props.result) {
-    jsonEditor.setValue(JSON.stringify(props.result.data, null, 2))
-  }
-}
-
-// 表格分页变化
-const handleTableChange = (pagination: any) => {
-  currentPage.value = pagination.current
-  pageSize.value = pagination.pageSize
 }
 
 // 复制到剪贴板
@@ -250,43 +237,27 @@ const downloadJson = () => {
   const jsonStr = JSON.stringify(props.result.data, null, 2)
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' })
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
-  saveAs(blob, `generated-data-${timestamp}.json`)
+  
+  // 创建下载链接
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `generated-data-${timestamp}.json`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+  
+  ElMessage.success('文件下载已开始')
+  emit('export', 'json')
 }
 
-// 监听预览模式变化
-watch(previewMode, async (newMode) => {
-  if (newMode === 'json') {
-    await nextTick()
-    if (!jsonEditor) {
-      await initJsonEditor()
-    } else {
-      updateJsonEditor()
-    }
-  }
-})
-
 // 监听结果变化
-watch(() => props.result, () => {
-  if (previewMode.value === 'json') {
-    updateJsonEditor()
-  }
+watch(() => props.result, (newResult) => {
+  console.log('JsonPreview 接收到新结果:', newResult)
   // 重置分页
   currentPage.value = 1
 }, { deep: true })
-
-// 生命周期
-onMounted(async () => {
-  if (previewMode.value === 'json') {
-    await nextTick()
-    await initJsonEditor()
-  }
-})
-
-onUnmounted(() => {
-  if (jsonEditor) {
-    jsonEditor.dispose()
-  }
-})
 </script>
 
 <style scoped>
@@ -297,6 +268,10 @@ onUnmounted(() => {
 .empty-state {
   padding: 40px;
   text-align: center;
+}
+
+.empty-data {
+  padding: 20px;
 }
 
 .preview-content {

@@ -119,16 +119,45 @@
         </div>
       </div>
     </div>
+
+    <!-- 添加操作按钮区域 -->
+    <div class="action-section">
+      <div class="button-group">
+        <button type="button" @click="resetConfig" class="btn-secondary">
+          重置配置
+        </button>
+        <button 
+          type="button" 
+          @click="nextStep" 
+          :disabled="!isConfigValid"
+          class="btn-primary"
+        >
+          下一步：字段配置
+        </button>
+      </div>
+      
+      <!-- 配置验证提示 -->
+      <div v-if="!isConfigValid" class="validation-tip">
+        <span class="tip-icon">⚠️</span>
+        <span>{{ validationMessage }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 
 // Props
 defineProps<{
   className?: string
   style?: any
+}>()
+
+// Emits
+const emit = defineEmits<{
+  nextStep: [config: any]
+  configChange: [config: any]
 }>()
 
 // 生成策略
@@ -156,6 +185,71 @@ const complexLevels = reactive([
   }
 ])
 
+// 配置验证
+const isConfigValid = computed(() => {
+  switch (generationStrategy.value) {
+    case 'fixed':
+      return fixedCount.value > 0 && fixedCount.value <= 10000
+    
+    case 'traverse':
+      if (traverseType.value === 'json') {
+        return jsonData.value.trim() !== ''
+      } else {
+        return rangeStart.value < rangeEnd.value && rangeStep.value > 0
+      }
+    
+    case 'complex':
+      return complexLevels.every(level => {
+        if (level.sourceType === 'json') {
+          return level.name.trim() !== '' && level.jsonData.trim() !== ''
+        } else {
+          return level.name.trim() !== '' && 
+                 level.rangeStart < level.rangeEnd && 
+                 level.step > 0
+        }
+      })
+    
+    default:
+      return false
+  }
+})
+
+// 验证消息
+const validationMessage = computed(() => {
+  switch (generationStrategy.value) {
+    case 'fixed':
+      if (fixedCount.value <= 0) return '生成数量必须大于0'
+      if (fixedCount.value > 10000) return '生成数量不能超过10000'
+      break
+    
+    case 'traverse':
+      if (traverseType.value === 'json' && jsonData.value.trim() === '') {
+        return '请输入有效的JSON数据'
+      }
+      if (traverseType.value === 'range') {
+        if (rangeStart.value >= rangeEnd.value) return '起始值必须小于结束值'
+        if (rangeStep.value <= 0) return '步长必须大于0'
+      }
+      break
+    
+    case 'complex':
+      const invalidLevel = complexLevels.findIndex(level => {
+        if (level.sourceType === 'json') {
+          return level.name.trim() === '' || level.jsonData.trim() === ''
+        } else {
+          return level.name.trim() === '' || 
+                 level.rangeStart >= level.rangeEnd || 
+                 level.step <= 0
+        }
+      })
+      if (invalidLevel !== -1) {
+        return `第${invalidLevel + 1}层配置不完整或有误`
+      }
+      break
+  }
+  return '请完善配置信息'
+})
+
 // 方法
 const addLevel = () => {
   complexLevels.push({
@@ -173,6 +267,71 @@ const removeLevel = (index: number) => {
     complexLevels.splice(index, 1)
   }
 }
+
+const resetConfig = () => {
+  generationStrategy.value = 'fixed'
+  fixedCount.value = 10
+  traverseType.value = 'json'
+  jsonData.value = ''
+  rangeStart.value = 1
+  rangeEnd.value = 100
+  rangeStep.value = 1
+  
+  // 重置复杂遍历配置
+  complexLevels.splice(0, complexLevels.length)
+  complexLevels.push({
+    name: '',
+    sourceType: 'json',
+    jsonData: '',
+    rangeStart: 1,
+    rangeEnd: 10,
+    step: 1
+  })
+}
+
+const nextStep = () => {
+  if (!isConfigValid.value) return
+  
+  // 构建配置对象
+  const config = {
+    strategy: generationStrategy.value,
+    ...(generationStrategy.value === 'fixed' && {
+      fixedCount: fixedCount.value
+    }),
+    ...(generationStrategy.value === 'traverse' && {
+      traverseType: traverseType.value,
+      ...(traverseType.value === 'json' && { jsonData: jsonData.value }),
+      ...(traverseType.value === 'range' && {
+        rangeStart: rangeStart.value,
+        rangeEnd: rangeEnd.value,
+        rangeStep: rangeStep.value
+      })
+    }),
+    ...(generationStrategy.value === 'complex' && {
+      complexLevels: [...complexLevels]
+    })
+  }
+  
+  // 触发下一步事件
+  emit('nextStep', config)
+}
+
+// 监听配置变化
+const emitConfigChange = () => {
+  const config = {
+    strategy: generationStrategy.value,
+    isValid: isConfigValid.value,
+    // ... 其他配置数据
+  }
+  emit('configChange', config)
+}
+
+// 监听配置变化
+import { watch } from 'vue'
+watch([generationStrategy, fixedCount, traverseType, jsonData, rangeStart, rangeEnd, rangeStep, complexLevels], 
+  emitConfigChange, 
+  { deep: true }
+)
 </script>
 
 <style scoped>
@@ -242,6 +401,76 @@ const removeLevel = (index: number) => {
   align-items: center;
   margin-bottom: 15px;
   font-weight: bold;
+}
+
+/* 新增样式 */
+.action-section {
+  margin-top: 30px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+}
+
+.button-group {
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.btn-primary {
+  padding: 12px 24px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.btn-primary:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn-secondary {
+  padding: 12px 24px;
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+}
+
+.validation-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  color: #856404;
+  font-size: 14px;
+}
+
+.tip-icon {
+  font-size: 16px;
 }
 
 button {

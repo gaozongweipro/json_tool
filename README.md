@@ -1,61 +1,52 @@
 # JSON生成工具
 
-一个灵活的JSON数据批量生成工具，既可以本地独立使用，也可以作为Vue组件嵌入到其他项目中。
+一个功能强大的JSON数据批量生成工具，基于Vue 3构建，提供直观的可视化界面和灵活的配置选项。
 
-## 功能特性
+## ✨ 功能特性
 
-### 🚀 核心功能
-- **业务数据生成器**: 专为生产环境设计的批量数据录入工具，支持设备、用户、产品等业务场景
-- **灵活的模板系统**: 支持复杂的JSON模板定义，包含占位符和函数调用
-- **丰富的内置函数**: 随机字符串、数字、日期、UUID等数据生成函数
-- **可视化编辑器**: 无需编写代码的可视化规则构建器
-- **多种生成策略**: 支持单一生成、批量生成、交叉生成等多种数据生成策略
-- **批量生成**: 高性能批量数据生成，支持大数据量处理
+### 🎯 配置管理
+- **配置首页**: 启动时展示配置管理界面，支持快速选择已有配置或创建新配置
+- **配置保存**: 支持本地保存配置，方便重复使用
+- **配置导入/导出**: 支持配置文件的导入导出，便于分享和备份
+- **配置预览**: 加载配置后直接跳转到预览界面，提升使用效率
+
+### 🚀 数据生成策略
+- **单一生成**: 生成单条数据记录
+- **批量生成**: 高效批量生成大量数据
+- **交叉生成**: 多维度数据交叉组合生成
+- **自定义数量**: 灵活设置生成数据的数量
+
+### 🔧 字段配置
+- **固定值**: 设置字段的固定值
+- **序列递增**: 自动递增的序列号
+- **分类选择**: 从预定义选项中随机选择
+- **范围值**: 在指定范围内生成随机数值
+- **模板字符串**: 支持复杂的模板表达式
+- **可视化配置**: 无需编写代码的图形化配置界面
 
 ### 📊 预览与导出
-- **实时预览**: 表格视图和JSON视图切换
-- **多格式导出**: JSON、JSONL、CSV格式导出
-- **文件分割**: 大文件自动分割导出
-- **统计信息**: 数据统计和字段分析
+- **实时预览**: 配置完成后立即预览生成效果
+- **表格视图**: 清晰的表格形式展示数据
+- **JSON视图**: 原始JSON格式查看
+- **多格式导出**: 支持JSON、JSONL、CSV格式导出
+- **批量下载**: 大数据量自动分割下载
 
-### 🔧 使用方式
-- **独立应用**: 可直接在浏览器中使用
-- **Vue组件**: 可嵌入到其他Vue项目中
-- **NPM包**: 支持作为依赖库使用
+### 🎨 用户体验
+- **响应式设计**: 完美适配桌面端和移动端
+- **简洁精致**: 现代化的UI设计，操作直观
+- **步骤导航**: 清晰的操作流程指引
+- **毛玻璃效果**: 精美的视觉效果和动画
+- **深色模式**: 支持深色主题切换
 
-## 业务数据生成器
+## 🚀 快速开始
 
-### 🎯 专为生产环境设计
-
-业务数据生成器是专门为生产环境批量数据录入而设计的工具，特别适用于以下场景：
-
-- **设备批量录入**: 批量录入传感器、设备等硬件信息
-- **用户批量录入**: 批量录入员工、客户等人员信息  
-- **产品批量录入**: 批量录入商品、物料等产品信息
-- **业务数据迁移**: 系统迁移时的数据批量生成
-
-### 🚀 主要特点
-
-- **预设业务模板**: 提供设备、用户、产品等常用业务模板
-- **多种生成策略**: 支持单一生成、批量生成、交叉生成
-- **可视化配置**: 无需编写代码，通过界面配置即可
-- **实时预览**: 配置完成后可立即预览生成效果
-- **灵活字段类型**: 支持固定值、序列递增、分类选择、范围值、模板字符串等
-
-### 📋 使用流程
-
-1. **选择业务模板**: 从预设模板中选择或自定义
-2. **配置字段规则**: 为每个字段设置生成规则
-3. **选择生成策略**: 根据需求选择合适的生成策略
-4. **预览并生成**: 预览数据样例，确认后生成完整数据
-
-详细使用指南请参考：[业务数据生成器使用指南](./docs/business-generator-guide.md)
-
-## 快速开始
-
-### 本地开发
+### 本地运行
 
 ```bash
+# 克隆项目
+git clone <repository-url>
+cd json_tool
+
 # 安装依赖
 npm install
 
@@ -64,212 +55,64 @@ npm run dev
 
 # 构建生产版本
 npm run build
-
-# 构建组件库
-npm run build:lib
 ```
 
-### 作为组件使用
+### 使用流程
 
-```bash
-npm install json-generator-tool
-```
+1. **配置管理**: 启动应用后，选择"创建新配置"或加载已有配置
+2. **生成策略**: 选择数据生成策略（单一/批量/交叉生成）
+3. **字段配置**: 为每个字段设置生成规则和类型
+4. **预览生成**: 预览数据样例，确认无误后生成完整数据
+5. **导出数据**: 选择合适的格式导出生成的数据
 
-```vue
-<template>
-  <JsonGeneratorComponent
-    :config="config"
-    @generate="handleGenerate"
-    @export="handleExport"
-  />
-</template>
+## 📋 生成策略详解
 
-<script setup lang="ts">
-import { ref } from 'vue'
-import JsonGeneratorComponent from 'json-generator-tool'
-import 'json-generator-tool/dist/style.css'
+### 单一生成
+生成单条数据记录，适用于测试和样例数据创建。
 
-const config = ref({
-  batchSize: 1000,
-  enableValidation: true
-})
+### 批量生成
+高效生成大量相似结构的数据，支持自定义生成数量。
 
-const handleGenerate = (result: any) => {
-  console.log('生成完成:', result)
-}
+### 交叉生成
+多个字段值进行交叉组合，生成所有可能的组合数据。
 
-const handleExport = (data: any[], options: any) => {
-  console.log('导出数据:', data.length, options)
-}
-</script>
-```
+## 🔧 字段类型说明
 
-### 使用核心API
+### 固定值
+为字段设置一个固定的值，所有生成的记录该字段都使用相同值。
 
-```typescript
-import { createJsonGenerator, createSampleRule } from 'json-generator-tool'
+### 序列递增
+生成自动递增的序列号，支持设置起始值、步长、前缀和后缀。
 
-// 创建生成器
-const generator = createJsonGenerator({
-  batchSize: 1000,
-  enableValidation: true
-})
+### 分类选择
+从预定义的选项列表中随机选择值，支持自定义选项。
 
-// 定义生成规则
-const rule = {
-  id: 'user-data',
-  name: '用户数据生成',
-  template: {
-    id: '{{uuid()}}',
-    name: '{{randomChoice(["张三", "李四", "王五"])}}',
-    age: '{{randomInt(18, 65)}}',
-    email: '{{randomString(8)}}@example.com',
-    createdAt: '{{randomDate()}}'
-  },
-  count: 100
-}
+### 范围值
+在指定的数值范围内生成随机数，支持整数和浮点数。
 
-// 生成数据
-generator.generate(rule).then(result => {
-  console.log('生成的数据:', result.data)
-})
-```
+### 模板字符串
+使用模板表达式生成复杂的字符串值，支持变量引用和函数调用。
 
-## 模板语法
+## 🎨 界面特性
 
-### 基本语法
+### 响应式布局
+- **大屏幕**: 充分利用屏幕空间，多列布局展示
+- **中等屏幕**: 适中的布局密度，保持良好的可读性
+- **小屏幕**: 单列布局，优化触摸操作体验
 
-```json
-{
-  "id": "{{uuid()}}",
-  "name": "{{randomChoice([\"张三\", \"李四\", \"王五\"])}}",
-  "age": "{{randomInt(18, 65)}}",
-  "email": "{{randomString(8)}}@example.com"
-}
-```
+### 视觉设计
+- **毛玻璃效果**: 现代化的半透明背景效果
+- **渐变色彩**: 精心设计的色彩搭配
+- **动画效果**: 流畅的过渡和悬停动画
+- **卡片设计**: 清晰的信息层次和视觉分组
 
-### 内置函数
+### 可访问性
+- **高对比度**: 支持高对比度模式
+- **键盘导航**: 完整的键盘操作支持
+- **屏幕阅读器**: 良好的无障碍访问支持
+- **减少动画**: 支持减少动画偏好设置
 
-| 函数名 | 描述 | 参数 | 示例 |
-|--------|------|------|------|
-| `uuid()` | 生成UUID | 无 | `{{uuid()}}` |
-| `randomString(length, charset?)` | 随机字符串 | 长度, 字符集 | `{{randomString(10)}}` |
-| `randomInt(min, max)` | 随机整数 | 最小值, 最大值 | `{{randomInt(1, 100)}}` |
-| `randomFloat(min, max, decimals?)` | 随机浮点数 | 最小值, 最大值, 小数位 | `{{randomFloat(0, 1, 2)}}` |
-| `randomChoice(array)` | 随机选择 | 选项数组 | `{{randomChoice(["A", "B", "C"])}}` |
-| `randomDate(start?, end?, format?)` | 随机日期 | 开始日期, 结束日期, 格式 | `{{randomDate()}}` |
-| `sequence(start?, step?, prefix?, suffix?)` | 序列号 | 起始值, 步长, 前缀, 后缀 | `{{sequence(1, 1, "ID", "")}}` |
-
-### 条件渲染
-
-```json
-{
-  "#if": {
-    "condition": "{{randomChoice([true, false])}}",
-    "then": {
-      "status": "active",
-      "lastLogin": "{{randomDate()}}"
-    },
-    "else": {
-      "status": "inactive"
-    }
-  }
-}
-```
-
-### 循环生成
-
-```json
-{
-  "tags": {
-    "#repeat": 3,
-    "template": "{{randomChoice([\"tag1\", \"tag2\", \"tag3\"])}}"
-  }
-}
-```
-
-### 变量引用
-
-```json
-{
-  "name": "{{randomChoice([\"张三\", \"李四\"])}}",
-  "greeting": "你好，{{name}}！",
-  "profile": {
-    "displayName": "{{name}}",
-    "avatar": "https://example.com/avatar/{{$index}}.jpg"
-  }
-}
-```
-
-## 数据源配置
-
-### JSON数据源
-
-```json
-{
-  "dataSource": {
-    "type": "json",
-    "config": {
-      "data": [
-        {"city": "北京", "code": "010"},
-        {"city": "上海", "code": "021"}
-      ]
-    }
-  }
-}
-```
-
-### API数据源
-
-```json
-{
-  "dataSource": {
-    "type": "api",
-    "config": {
-      "url": "https://api.example.com/cities",
-      "headers": {
-        "Authorization": "Bearer token"
-      }
-    }
-  }
-}
-```
-
-## API文档
-
-### JsonGenerator
-
-```typescript
-class JsonGenerator {
-  constructor(config?: GeneratorConfig)
-  generate(rule: GenerationRule): Promise<GenerationResult>
-  updateConfig(config: Partial<GeneratorConfig>): void
-  getConfig(): GeneratorConfig
-}
-```
-
-### 类型定义
-
-```typescript
-interface GenerationRule {
-  id: string
-  name: string
-  description?: string
-  template: JsonTemplate
-  dataSource?: DataSource
-  count: number
-  conditions?: Condition[]
-}
-
-interface GeneratorConfig {
-  batchSize?: number
-  enableValidation?: boolean
-  outputFormat?: 'json' | 'jsonl'
-  prettify?: boolean
-}
-```
-
-## 项目结构
+## 📁 项目结构
 
 ```
 src/
