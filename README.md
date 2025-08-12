@@ -1,6 +1,6 @@
 # JSON生成工具
 
-一个灵活的JSON数据批量生成工具，既可以本地独立使用，也可以作为React组件嵌入到其他项目中。
+一个灵活的JSON数据批量生成工具，既可以本地独立使用，也可以作为Vue组件嵌入到其他项目中。
 
 ## 功能特性
 
@@ -20,7 +20,7 @@
 
 ### 🔧 使用方式
 - **独立应用**: 可直接在浏览器中使用
-- **React组件**: 可嵌入到其他React项目中
+- **Vue组件**: 可嵌入到其他Vue项目中
 - **NPM包**: 支持作为依赖库使用
 
 ## 业务数据生成器
@@ -75,36 +75,38 @@ npm run build:lib
 npm install json-generator-tool
 ```
 
-```tsx
-import React from 'react'
-import { JsonGeneratorComponent } from 'json-generator-tool'
+```vue
+<template>
+  <JsonGeneratorComponent
+    :config="config"
+    @generate="handleGenerate"
+    @export="handleExport"
+  />
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import JsonGeneratorComponent from 'json-generator-tool'
 import 'json-generator-tool/dist/style.css'
 
-function App() {
-  const handleGenerate = (result) => {
-    console.log('生成完成:', result)
-  }
+const config = ref({
+  batchSize: 1000,
+  enableValidation: true
+})
 
-  const handleExport = (data, options) => {
-    console.log('导出数据:', data.length, options)
-  }
-
-  return (
-    <JsonGeneratorComponent
-      onGenerate={handleGenerate}
-      onExport={handleExport}
-      config={{
-        batchSize: 1000,
-        enableValidation: true
-      }}
-    />
-  )
+const handleGenerate = (result: any) => {
+  console.log('生成完成:', result)
 }
+
+const handleExport = (data: any[], options: any) => {
+  console.log('导出数据:', data.length, options)
+}
+</script>
 ```
 
 ### 使用核心API
 
-```tsx
+```typescript
 import { createJsonGenerator, createSampleRule } from 'json-generator-tool'
 
 // 创建生成器
@@ -275,14 +277,18 @@ src/
 │   ├── JsonGenerator.ts  # 主生成器
 │   ├── RuleEngine.ts     # 规则引擎
 │   └── TemplateParser.ts # 模板解析器
-├── components/           # React组件
-│   ├── JsonGeneratorComponent.tsx
-│   ├── RuleEditor.tsx
-│   ├── JsonPreview.tsx
-│   └── ExportPanel.tsx
+├── components/           # Vue组件
+│   ├── JsonGeneratorComponent.vue
+│   ├── RuleEditor.vue
+│   ├── JsonPreview.vue
+│   ├── ExportPanel.vue
+│   ├── VisualRuleBuilder.vue
+│   ├── BusinessRuleBuilder.vue
+│   ├── FieldConfig.vue
+│   └── BusinessFieldConfig.vue
 ├── types/               # 类型定义
 ├── utils/               # 工具函数
-└── App.tsx              # 独立应用入口
+└── App.vue              # 独立应用入口
 ```
 
 ## 开发指南
