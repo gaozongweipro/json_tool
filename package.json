@@ -1,7 +1,7 @@
 {
   "name": "json-generator-tool",
   "version": "1.0.0",
-  "description": "A flexible JSON generation tool that can be used locally or embedded in other projects",
+  "description": "A flexible JSON generation tool built with Vue 3, can be used locally or embedded as Vue component in other projects",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -21,41 +21,37 @@
     "json",
     "generator",
     "tool",
-    "react",
+    "vue",
     "component",
     "library"
   ],
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "vue": "^3.3.0",
     "monaco-editor": "^0.44.0",
-    "@monaco-editor/react": "^4.6.0",
-    "antd": "^5.12.0",
+    "element-plus": "^2.4.0",
     "lodash": "^4.17.21",
     "handlebars": "^4.7.8",
     "ajv": "^8.12.0",
     "file-saver": "^2.0.5"
   },
   "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
     "@types/lodash": "^4.14.202",
     "@types/file-saver": "^2.0.7",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "@vue/eslint-config-typescript": "^12.0.0",
     "eslint": "^8.55.0",
-    "eslint-plugin-react-hooks": "^4.6.0",
-    "eslint-plugin-react-refresh": "^0.4.5",
+    "eslint-plugin-vue": "^9.18.0",
     "typescript": "^5.2.2",
     "vite": "^5.0.8",
     "vite-plugin-dts": "^3.6.4",
-    "vitest": "^1.0.4"
+    "vitest": "^1.0.4",
+    "vue-tsc": "^1.8.0"
   },
   "peerDependencies": {
-    "react": ">=16.8.0",
-    "react-dom": ">=16.8.0"
+    "vue": ">=3.3.0"
   }
 }

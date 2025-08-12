@@ -1,13 +1,31 @@
+// 字段配置接口
+export interface FieldConfig {
+  name: string
+  type: string
+  displayName?: string
+  businessMeaning?: string
+  required: boolean
+  unique?: boolean
+  indexed?: boolean
+  config: Record<string, any>
+}
+
 // 生成规则接口
 export interface GenerationRule {
-  id: string
-  name: string
+  id?: string
+  name?: string
   description?: string
-  template: JsonTemplate
+  template?: string | JsonTemplate
   dataSource?: DataSource
   count: number
+  outputFormat?: 'json' | 'jsonl' | 'csv'
+  fields?: FieldConfig[]
+  mode?: 'visual' | 'code' | 'business'
   conditions?: Condition[]
 }
+
+// Rule类型别名，用于向后兼容
+export type Rule = GenerationRule
 
 // JSON模板接口
 export interface JsonTemplate {
@@ -90,18 +108,14 @@ export interface FunctionParam {
 }
 
 // 组件Props类型
+// Vue组件Props接口
 export interface JsonGeneratorComponentProps {
   initialRule?: GenerationRule
   config?: GeneratorConfig
-  onGenerate?: (result: GenerationResult) => void
-  onExport?: (data: any[], options: ExportOptions) => void
-  className?: string
-  style?: React.CSSProperties
 }
 
 export interface RuleEditorProps {
   rule: GenerationRule
-  onChange: (rule: GenerationRule) => void
   functions?: BuiltinFunction[]
 }
 
@@ -114,6 +128,83 @@ export interface JsonPreviewProps {
 
 export interface ExportPanelProps {
   data: any[]
-  onExport: (options: ExportOptions) => void
   disabled?: boolean
+}
+
+export interface VisualRuleBuilderProps {
+  rule: GenerationRule
+}
+
+export interface BusinessRuleBuilderProps {
+  rule: GenerationRule
+}
+
+export interface FieldConfigProps {
+  field: FieldConfig
+}
+
+// 预览模式类型
+export type PreviewMode = 'table' | 'json' | 'raw'
+
+// 字段类型枚举
+export enum FieldType {
+  STRING = 'string',
+  NUMBER = 'number',
+  BOOLEAN = 'boolean',
+  DATE = 'date',
+  ARRAY = 'array',
+  OBJECT = 'object',
+  ENUM = 'enum',
+  UUID = 'uuid',
+  EMAIL = 'email',
+  PHONE = 'phone',
+  URL = 'url',
+  ID = 'id',
+  NAME = 'name',
+  ADDRESS = 'address',
+  COMPANY = 'company',
+  PRICE = 'price',
+  STATUS = 'status'
+}
+
+// 数据生成策略接口
+export interface GenerationStrategy {
+  type: 'random' | 'normal' | 'weighted' | 'sequential'
+  quality: 'high' | 'medium' | 'low'
+  params: Record<string, any>
+}
+
+// 约束条件接口
+export interface DataConstraints {
+  types: string[]
+  unique: {
+    fields: string[]
+  }
+  range: {
+    rules: Array<{
+      field: string
+      min: number
+      max: number
+    }>
+  }
+  business: {
+    rules: string
+  }
+}
+
+// 关联关系接口
+export interface FieldRelationship {
+  sourceField: string
+  type: 'dependent' | 'calculated' | 'conditional'
+  targetField: string
+  rule: string
+}
+
+// 业务场景配置接口
+export interface BusinessScenarioConfig {
+  name: string
+  description: string
+  fields: FieldConfig[]
+  constraints?: DataConstraints
+  relationships?: FieldRelationship[]
 }

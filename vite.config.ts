@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import vue from '@vitejs/plugin-vue'
 import dts from 'vite-plugin-dts'
 import { resolve } from 'path'
 
@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [
-      react(),
+      vue(),
       ...(isLib ? [dts({ include: ['src'] })] : [])
     ],
     resolve: {
@@ -26,11 +26,10 @@ export default defineConfig(({ mode }) => {
           fileName: (format) => `index.${format === 'es' ? 'esm' : format}.js`
         },
         rollupOptions: {
-          external: ['react', 'react-dom'],
+          external: ['vue'],
           output: {
             globals: {
-              react: 'React',
-              'react-dom': 'ReactDOM'
+              vue: 'Vue'
             }
           }
         }
