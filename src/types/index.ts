@@ -208,3 +208,10 @@ export interface BusinessScenarioConfig {
   constraints?: DataConstraints
   relationships?: FieldRelationship[]
 }
+
+
+// 统一导出所有类型
+export * from './config';
+export * from './fields';
+export * from './rules';
+export * from './generation';

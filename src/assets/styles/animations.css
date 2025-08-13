@@ -1,0 +1,77 @@
+/* 淡入淡出 */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.fade-enter-active {
+  animation: fadeIn var(--transition-duration) var(--transition-timing-function);
+}
+
+.fade-leave-active {
+  animation: fadeOut var(--transition-duration) var(--transition-timing-function);
+}
+
+/* 滑动 */
+@keyframes slideInRight {
+  from { transform: translateX(30px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutRight {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(30px); opacity: 0; }
+}
+
+.slide-enter-active {
+  animation: slideInRight var(--transition-duration) var(--transition-timing-function);
+}
+
+.slide-leave-active {
+  animation: slideOutRight var(--transition-duration) var(--transition-timing-function);
+}
+
+/* 缩放 */
+@keyframes zoomIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes zoomOut {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(0.9); opacity: 0; }
+}
+
+.zoom-enter-active {
+  animation: zoomIn var(--transition-duration) var(--transition-timing-function);
+}
+
+.zoom-leave-active {
+  animation: zoomOut var(--transition-duration) var(--transition-timing-function);
+}
+
+/* 脉冲动画 */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+/* 加载动画 */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}

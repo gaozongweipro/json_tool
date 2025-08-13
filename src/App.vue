@@ -1,66 +1,57 @@
 <template>
-  <el-config-provider :locale="zhCN">
-    <div class="app">
-      <header class="app-header">
-        <h1>JSON数据生成工具</h1>
-        <p>快速生成测试数据，支持多种生成策略和字段配置</p>
-      </header>
-      
-      <main class="app-main">
-        <!-- 步骤导航 -->
-        <div class="steps-container" v-if="currentStep > 0">
-          <el-steps :active="currentStep - 1" finish-status="success" align-center>
-            <el-step title="生成策略" description="选择数据生成方式" />
-            <el-step title="字段配置" description="配置JSON字段信息" />
-            <el-step title="预览生成" description="生成并预览数据" />
-          </el-steps>
-        </div>
-        
-        <!-- 步骤0: 配置管理首页 -->
-        <div v-if="currentStep === 0" class="step-content">
-          <ConfigurationHome
-            :local-configs="localConfigs"
-            :imported-configs="importedConfigs"
-            @start-new="startNewConfig"
-            @load-config="loadConfigFromHome"
-            @delete-local="deleteLocalConfig"
-            @delete-imported="deleteImportedConfig"
-            @import-config="handleImportConfig"
-          />
-        </div>
-        
+  <MainLayout 
+    :current-step="currentStep"
+    :steps="steps"
+    :sidebar-collapsed="sidebarCollapsed"
+    @go-home="goToHome"
+    @toggle-sidebar="toggleSidebar"
+    @step-click="handleStepClick"
+  >
+    <!-- 首页 -->
+    <section v-if="currentStep === 0" class="home-section">
+      <ConfigurationHome
+        :local-configs="localConfigs"
+        :imported-configs="importedConfigs"
+        @start-new="startNewConfig"
+        @load-config="loadConfigFromHome"
+        @import-config="importConfigFromHome"
+        @delete-local="deleteLocalConfig"
+        @delete-imported="deleteImportedConfig"
+      />
+    </section>
+
+    <!-- 配置步骤 -->
+    <section v-else class="step-section">
+      <StepLayout
+        :title="getStepTitle()"
+        :description="getStepDescription()"
+        :step-title="steps[currentStep - 1]?.title"
+        :show-prev-button="currentStep > 1"
+        :show-next-button="currentStep < steps.length"
+        :next-button-text="getNextButtonText()"
+        :next-disabled="!canProceedToNext()"
+        @prev-step="prevStep"
+        @next-step="nextStep"
+      >
         <!-- 步骤1: 生成策略 -->
-        <div v-if="currentStep === 1" class="step-content">
+        <div v-if="currentStep === 1" class="step-panel">
           <JsonGeneratorComponent
-            :initial-config="strategyConfig"
-            @nextStep="handleStrategyNext"
+            v-model="strategyConfig"
             @configChange="handleStrategyChange"
           />
         </div>
         
         <!-- 步骤2: 字段配置 -->
-        <div v-if="currentStep === 2" class="step-content">
+        <div v-if="currentStep === 2" class="step-panel">
           <FieldsConfigComponent
             v-model="fields"
             :strategy-config="strategyConfig"
             @change="handleFieldsChange"
           />
-          
-          <!-- 步骤导航按钮 -->
-          <div class="step-actions">
-            <el-button @click="prevStep">上一步</el-button>
-            <el-button
-              type="primary"
-              @click="nextStep"
-              :disabled="!isFieldsValid"
-            >
-              下一步：预览生成
-            </el-button>
-          </div>
         </div>
         
         <!-- 步骤3: 预览生成 -->
-        <div v-if="currentStep === 3" class="step-content">
+        <div v-if="currentStep === 3" class="step-panel">
           <DataPreviewPage
             :strategy-config="strategyConfig"
             :fields="fields"
@@ -79,973 +70,1048 @@
             @export="handleExport"
           />
         </div>
-      </main>
+      </StepLayout>
+    </section>
+
+    <!-- 保存配置对话框 -->
+    <el-dialog
+      v-model="showSaveDialog"
+      title="保存配置"
+      width="500px"
+      :before-close="handleSaveDialogClose"
+    >
+      <el-form :model="saveConfigForm" label-width="80px">
+        <el-form-item label="配置名称">
+          <el-input 
+            v-model="saveConfigForm.name" 
+            placeholder="请输入配置名称"
+            maxlength="50"
+            show-word-limit
+          />
+        </el-form-item>
+        <el-form-item label="配置描述">
+          <el-input 
+            v-model="saveConfigForm.description" 
+            type="textarea"
+            placeholder="请输入配置描述（可选）"
+            maxlength="200"
+            show-word-limit
+            :rows="3"
+          />
+        </el-form-item>
+      </el-form>
       
-      <!-- 保存配置对话框 -->
-      <el-dialog
-        v-model="saveConfigDialogVisible"
-        title="保存配置"
-        width="500px"
-        class="config-dialog"
-      >
-        <el-form :model="saveConfigForm" label-width="80px" class="config-form">
-          <el-form-item label="配置名称" required>
-            <el-input
-              v-model="saveConfigForm.name"
-              placeholder="请输入配置名称"
-              maxlength="50"
-              show-word-limit
-            />
-          </el-form-item>
-          <el-form-item label="配置描述">
-            <el-input
-              v-model="saveConfigForm.description"
-              type="textarea"
-              placeholder="请输入配置描述（可选）"
-              maxlength="200"
-              show-word-limit
-              :rows="3"
-            />
-          </el-form-item>
-        </el-form>
-        <template #footer>
-          <div class="dialog-footer">
-            <el-button @click="saveConfigDialogVisible = false">取消</el-button>
-            <el-button
-              type="primary"
-              @click="confirmSaveConfig"
-              :disabled="!saveConfigForm.name.trim()"
+      <template #footer>
+        <el-button @click="handleSaveDialogClose">取消</el-button>
+        <el-button 
+          type="primary" 
+          @click="confirmSaveConfig"
+          :disabled="!saveConfigForm.name.trim()"
+        >
+          保存
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 加载配置对话框 -->
+    <el-dialog
+      v-model="showLoadDialog"
+      title="加载配置"
+      width="800px"
+      :before-close="handleLoadDialogClose"
+    >
+      <el-tabs v-model="loadActiveTab">
+        <el-tab-pane label="本地保存" name="local" v-if="localConfigs.length > 0">
+          <div class="config-grid">
+            <div 
+              v-for="config in localConfigs" 
+              :key="config.id"
+              class="config-item"
+              @click="loadSelectedConfig(config)"
             >
-              保存
-            </el-button>
+              <h4>{{ config.name }}</h4>
+              <p>{{ config.description || '无描述' }}</p>
+              <small>保存时间: {{ formatDate(config.savedAt) }}</small>
+            </div>
           </div>
-        </template>
-      </el-dialog>
-      
-      <!-- 加载配置对话框 -->
-      <el-dialog
-        v-model="loadConfigDialogVisible"
-        title="加载配置"
-        width="600px"
-        class="config-dialog"
-      >
-        <el-tabs v-model="activeConfigTab" class="config-tabs">
-          <el-tab-pane label="本地保存" name="local">
-            <div class="config-list">
-              <div v-if="localConfigs.length === 0" class="empty-config">
-                暂无本地保存的配置
-              </div>
-              <div v-else class="config-items">
-                <div
-                  v-for="config in localConfigs"
-                  :key="config.id"
-                  class="config-item"
-                  :class="{ active: selectedConfigId === config.id }"
-                  @click="selectedConfigId = config.id"
-                >
-                  <div class="config-header">
-                    <h4>{{ config.name }}</h4>
-                    <el-tag size="small" type="success">本地保存</el-tag>
-                  </div>
-                  <p class="config-description">{{ config.description || '无描述' }}</p>
-                  <div class="config-meta">
-                    <span>保存时间: {{ formatDate(config.savedAt) }}</span>
-                    <span>策略: {{ getStrategyLabel(config.strategyConfig.strategy) }}</span>
-                    <span>字段: {{ config.fields.length }} 个</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </el-tab-pane>
-          
-          <el-tab-pane label="导入配置" name="imported">
-            <div class="config-list">
-              <div v-if="importedConfigs.length === 0" class="empty-config">
-                暂无导入的配置
-              </div>
-              <div v-else class="config-items">
-                <div
-                  v-for="config in importedConfigs"
-                  :key="config.id"
-                  class="config-item"
-                  :class="{ active: selectedConfigId === config.id }"
-                  @click="selectedConfigId = config.id"
-                >
-                  <div class="config-header">
-                    <h4>{{ config.name }}</h4>
-                    <el-tag size="small" type="warning">导入配置</el-tag>
-                  </div>
-                  <p class="config-description">{{ config.description || '无描述' }}</p>
-                  <div class="config-meta">
-                    <span>导入时间: {{ formatDate(config.importedAt) }}</span>
-                    <span>策略: {{ getStrategyLabel(config.strategyConfig.strategy) }}</span>
-                    <span>字段: {{ config.fields.length }} 个</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
+        </el-tab-pane>
         
-        <template #footer>
-          <div class="dialog-footer">
-            <el-button @click="loadConfigDialogVisible = false">取消</el-button>
-            <el-button
-              type="primary"
-              @click="confirmLoadConfig"
-              :disabled="!selectedConfigId"
+        <el-tab-pane label="导入配置" name="imported" v-if="importedConfigs.length > 0">
+          <div class="config-grid">
+            <div 
+              v-for="config in importedConfigs" 
+              :key="config.id"
+              class="config-item"
+              @click="loadSelectedConfig(config)"
             >
-              加载配置
-            </el-button>
+              <h4>{{ config.name }}</h4>
+              <p>{{ config.description || '无描述' }}</p>
+              <small>导入时间: {{ formatDate(config.importedAt) }}</small>
+            </div>
           </div>
-        </template>
-      </el-dialog>
-    </div>
-  </el-config-provider>
+        </el-tab-pane>
+      </el-tabs>
+      
+      <template #footer>
+        <el-button @click="handleLoadDialogClose">取消</el-button>
+      </template>
+    </el-dialog>
+  </MainLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import zhCN from 'element-plus/es/locale/lang/zh-cn'
-import JsonGeneratorComponent from './components/JsonGeneratorComponent.vue'
-import FieldsConfigComponent from './components/FieldsConfigComponent.vue'
-import ConfigurationHome from './components/ConfigurationHome.vue'
-import DataPreviewPage from './components/DataPreviewPage.vue'
 
-// 当前步骤 (0: 配置首页, 1: 生成策略, 2: 字段配置, 3: 预览生成)
-const currentStep = ref(0)
+// 导入布局组件
+import MainLayout from './layouts/MainLayout.vue'
+import StepLayout from './layouts/StepLayout.vue'
 
-// 配置对象
-const config = ref({
-  batchSize: 1000,
-  enableValidation: true,
-  outputFormat: 'json',
-  prettify: true
-})
+// 导入功能组件
+import ConfigurationHome from './components/config/ConfigurationHome.vue'
+import JsonGeneratorComponent from './components/common/JsonGeneratorComponent.vue'
+import FieldsConfigComponent from './components/fields/FieldsConfigComponent.vue'
+import DataPreviewPage from './components/preview/DataPreviewPage.vue'
 
-// 生成策略配置
+// ===== 核心状态 =====
+const currentStep = ref(0) // 当前步骤: 0=首页, 1=策略, 2=字段, 3=预览
+const sidebarCollapsed = ref(false) // 侧边栏折叠状态
+
+// ===== 配置数据 =====
 const strategyConfig = ref({
   strategy: 'fixed',
+  count: 10,
   isValid: false
 })
 
-// 字段配置
-const fields = ref<any[]>([])
-
-// 生成状态
+const fields = ref([])
+const generationResult = ref(null)
 const generating = ref(false)
-const generatedData = ref<any[]>([])
-const generationResult = ref<any>(null)
+const hasConfigChanged = ref(false)
 
-// 配置变更检测
-const lastGeneratedConfig = ref<any>(null)
-const configChangeAlertDismissed = ref(false)
+// ===== 配置管理 =====
+const localConfigs = ref([])
+const importedConfigs = ref([])
 
-// 本地配置存储
-const LOCAL_CONFIGS_KEY = 'json-generator-local-configs'
-const IMPORTED_CONFIGS_KEY = 'json-generator-imported-configs'
+// ===== 对话框状态 =====
+const showSaveDialog = ref(false)
+const showLoadDialog = ref(false)
+const loadActiveTab = ref('local')
 
-// 配置对话框状态
-const saveConfigDialogVisible = ref(false)
-const loadConfigDialogVisible = ref(false)
-const activeConfigTab = ref('local')
-const selectedConfigId = ref('')
-
-// 保存配置表单
 const saveConfigForm = ref({
   name: '',
   description: ''
 })
 
-// 配置列表
-const localConfigs = ref<any[]>([])
-const importedConfigs = ref<any[]>([])
+// ===== 步骤定义 =====
+const steps = [
+  { 
+    title: '生成策略', 
+    description: '配置数据生成的基本策略和参数',
+    icon: 'Setting'
+  },
+  { 
+    title: '字段配置', 
+    description: '定义每个字段的类型和生成规则',
+    icon: 'Grid'
+  },
+  { 
+    title: '预览生成', 
+    description: '预览数据并导出配置文件',
+    icon: 'View'
+  }
+]
 
-// 计算属性
+// ===== 计算属性 =====
 const isFieldsValid = computed(() => {
-  return fields.value.length > 0 && fields.value.every(field => 
-    field.name && 
-    field.key && 
-    field.type && 
-    field.dataSource &&
-    isSourceConfigValid(field)
-  )
+  return fields.value.length > 0 && fields.value.every(field => field.name && field.type)
 })
 
-const isConfigComplete = computed(() => {
-  return strategyConfig.value.isValid && isFieldsValid.value
-})
+// ===== 核心方法 =====
 
-// 检查是否有任何配置
-const hasAnyConfig = computed(() => {
-  return localConfigs.value.length > 0 || importedConfigs.value.length > 0
-})
+// 侧边栏控制
+const toggleSidebar = () => {
+  sidebarCollapsed.value = !sidebarCollapsed.value
+}
 
-// 检测配置是否已变更
-const hasConfigChanged = computed(() => {
-  if (!lastGeneratedConfig.value || !generationResult.value || configChangeAlertDismissed.value) {
-    return false
-  }
-  
-  // 比较策略配置
-  const currentStrategyHash = JSON.stringify(strategyConfig.value)
-  const lastStrategyHash = JSON.stringify(lastGeneratedConfig.value.strategy)
-  
-  // 比较字段配置
-  const currentFieldsHash = JSON.stringify(fields.value)
-  const lastFieldsHash = JSON.stringify(lastGeneratedConfig.value.fields)
-  
-  return currentStrategyHash !== lastStrategyHash || currentFieldsHash !== lastFieldsHash
-})
-
-// 验证数据来源配置
-const isSourceConfigValid = (field: any) => {
-  switch (field.dataSource) {
-    case 'fixed':
-      return field.sourceConfig?.fixedValue !== undefined && field.sourceConfig.fixedValue !== ''
-    case 'increment':
-      return field.sourceConfig?.startValue !== undefined && field.sourceConfig?.step > 0
-    case 'template':
-      return field.sourceConfig?.template && field.sourceConfig.template.trim() !== ''
-    default:
-      return false
+// 步骤样式类
+const getStepClasses = (stepNumber: number) => {
+  return {
+    'step-active': currentStep.value === stepNumber,
+    'step-completed': currentStep.value > stepNumber,
+    'step-clickable': stepNumber <= currentStep.value
   }
 }
 
-// 监听配置变化，重置提醒状态
-watch([strategyConfig, fields], () => {
-  configChangeAlertDismissed.value = false
-}, { deep: true })
-
-// 组件挂载时加载配置列表
-onMounted(() => {
-  loadConfigLists()
-})
-
-// 首页方法
-const startNewConfig = () => {
-  // 重置配置
-  strategyConfig.value = {
-    strategy: 'fixed',
-    isValid: false
-  }
-  fields.value = []
-  generationResult.value = null
-  
-  // 跳转到生成策略配置
-  currentStep.value = 1
-  ElMessage.info('开始创建新配置')
-}
-
-const loadConfigFromHome = (config: any) => {
-  try {
-    strategyConfig.value = { ...config.strategyConfig }
-    fields.value = [...config.fields]
-    
-    // 直接跳转到预览界面
-    currentStep.value = 3
-    ElMessage.success(`已加载配置"${config.name}"，跳转到预览界面`)
-  } catch (error) {
-    console.error('加载配置失败:', error)
-    ElMessage.error('加载配置失败: ' + (error as Error).message)
+// 步骤点击
+const handleStepClick = (stepNumber: number) => {
+  if (stepNumber <= currentStep.value) {
+    currentStep.value = stepNumber
   }
 }
 
+// 获取步骤标题
+const getStepTitle = () => {
+  const stepMap = {
+    1: '配置生成策略',
+    2: '配置数据字段',
+    3: '预览与导出'
+  }
+  return stepMap[currentStep.value] || ''
+}
+
+// 获取步骤描述
+const getStepDescription = () => {
+  const descMap = {
+    1: '选择数据生成的基本策略和参数设置',
+    2: '定义每个字段的类型、数据源和生成规则',
+    3: '预览生成的数据并导出配置文件'
+  }
+  return descMap[currentStep.value] || ''
+}
+
+// 检查是否可以进入下一步
+const canProceedToNext = () => {
+  switch (currentStep.value) {
+    case 1: return strategyConfig.value?.isValid
+    case 2: return isFieldsValid.value
+    case 3: return false
+    default: return false
+  }
+}
+
+// 获取下一步按钮文本
+const getNextButtonText = () => {
+  const textMap = {
+    1: '下一步：字段配置',
+    2: '下一步：预览生成'
+  }
+  return textMap[currentStep.value] || '下一步'
+}
+
+// ===== 导航方法 =====
 const goToHome = () => {
   currentStep.value = 0
-  ElMessage.info('已返回配置首页')
 }
 
-// 新增的处理导入配置的方法
-const handleImportConfig = (importedConfig: any) => {
-  importedConfigs.value.push(importedConfig)
-  localStorage.setItem(IMPORTED_CONFIGS_KEY, JSON.stringify(importedConfigs.value))
-  
-  // 直接加载并跳转到预览界面
-  loadConfigFromHome(importedConfig)
+const startNewConfig = () => {
+  currentStep.value = 1
 }
 
-// 配置管理方法
-const loadConfigLists = () => {
-  try {
-    const localConfigsData = localStorage.getItem(LOCAL_CONFIGS_KEY)
-    if (localConfigsData) {
-      localConfigs.value = JSON.parse(localConfigsData)
-    }
-    
-    const importedConfigsData = localStorage.getItem(IMPORTED_CONFIGS_KEY)
-    if (importedConfigsData) {
-      importedConfigs.value = JSON.parse(importedConfigsData)
-    }
-  } catch (error) {
-    console.error('加载配置列表失败:', error)
+const nextStep = () => {
+  if (currentStep.value < steps.length && canProceedToNext()) {
+    currentStep.value += 1
   }
 }
 
+const prevStep = () => {
+  if (currentStep.value > 1) {
+    currentStep.value -= 1
+  }
+}
+
+// ===== 配置处理方法 =====
+const handleStrategyChange = (config) => {
+  strategyConfig.value = config
+  hasConfigChanged.value = true
+}
+
+const handleFieldsChange = (newFields) => {
+  fields.value = newFields
+  hasConfigChanged.value = true
+}
+
+// ===== 首页事件处理 =====
+const loadConfigFromHome = (config) => {
+  strategyConfig.value = config.strategyConfig
+  fields.value = config.fields
+  hasConfigChanged.value = false
+  currentStep.value = 1
+  ElMessage.success(`已加载配置"${config.name}"`)
+}
+
+const importConfigFromHome = (config) => {
+  importedConfigs.value.push(config)
+  saveImportedConfigs()
+}
+
+const deleteLocalConfig = (configId) => {
+  localConfigs.value = localConfigs.value.filter(c => c.id !== configId)
+  saveLocalConfigs()
+  ElMessage.success('配置已删除')
+}
+
+const deleteImportedConfig = (configId) => {
+  importedConfigs.value = importedConfigs.value.filter(c => c.id !== configId)
+  saveImportedConfigs()
+  ElMessage.success('配置已删除')
+}
+
+// ===== 配置保存/加载 =====
 const showSaveConfigDialog = () => {
   saveConfigForm.value = {
     name: '',
     description: ''
   }
-  saveConfigDialogVisible.value = true
-}
-
-const confirmSaveConfig = () => {
-  try {
-    const configData = {
-      id: Date.now().toString(),
-      name: saveConfigForm.value.name.trim(),
-      description: saveConfigForm.value.description.trim(),
-      strategyConfig: strategyConfig.value,
-      fields: fields.value,
-      savedAt: new Date().toISOString(),
-      version: '1.0'
-    }
-    
-    localConfigs.value.push(configData)
-    localStorage.setItem(LOCAL_CONFIGS_KEY, JSON.stringify(localConfigs.value))
-    
-    saveConfigDialogVisible.value = false
-    ElMessage.success(`配置"${configData.name}"已保存到本地`)
-  } catch (error) {
-    console.error('保存配置失败:', error)
-    ElMessage.error('保存配置失败: ' + (error as Error).message)
-  }
+  showSaveDialog.value = true
 }
 
 const showLoadConfigDialog = () => {
-  selectedConfigId.value = ''
-  loadConfigDialogVisible.value = true
+  loadActiveTab.value = localConfigs.value.length > 0 ? 'local' : 'imported'
+  showLoadDialog.value = true
 }
 
-const confirmLoadConfig = () => {
-  try {
-    let selectedConfig = null
-    
-    if (activeConfigTab.value === 'local') {
-      selectedConfig = localConfigs.value.find(config => config.id === selectedConfigId.value)
-    } else {
-      selectedConfig = importedConfigs.value.find(config => config.id === selectedConfigId.value)
+const handleSaveDialogClose = () => {
+  showSaveDialog.value = false
+}
+
+const handleLoadDialogClose = () => {
+  showLoadDialog.value = false
+}
+
+const confirmSaveConfig = () => {
+  const config = {
+    id: Date.now().toString(),
+    name: saveConfigForm.value.name,
+    description: saveConfigForm.value.description,
+    strategyConfig: strategyConfig.value,
+    fields: fields.value,
+    savedAt: new Date().toISOString(),
+    version: '1.0'
+  }
+  
+  localConfigs.value.push(config)
+  saveLocalConfigs()
+  hasConfigChanged.value = false
+  showSaveDialog.value = false
+  ElMessage.success(`配置"${config.name}"已保存`)
+}
+
+const loadSelectedConfig = (config) => {
+  strategyConfig.value = config.strategyConfig
+  fields.value = config.fields
+  hasConfigChanged.value = false
+  showLoadDialog.value = false
+  ElMessage.success(`已加载配置"${config.name}"`)
+}
+
+// ===== 本地存储 =====
+const saveLocalConfigs = () => {
+  localStorage.setItem('json-generator-local-configs', JSON.stringify(localConfigs.value))
+}
+
+const loadLocalConfigs = () => {
+  const saved = localStorage.getItem('json-generator-local-configs')
+  if (saved) {
+    try {
+      localConfigs.value = JSON.parse(saved)
+    } catch (error) {
+      console.error('加载本地配置失败:', error)
     }
-    
-    if (!selectedConfig) {
-      ElMessage.error('未找到选中的配置')
-      return
+  }
+}
+
+const saveImportedConfigs = () => {
+  localStorage.setItem('json-generator-imported-configs', JSON.stringify(importedConfigs.value))
+}
+
+const loadImportedConfigs = () => {
+  const saved = localStorage.getItem('json-generator-imported-configs')
+  if (saved) {
+    try {
+      importedConfigs.value = JSON.parse(saved)
+    } catch (error) {
+      console.error('加载导入配置失败:', error)
     }
-    
-    strategyConfig.value = { ...selectedConfig.strategyConfig }
-    fields.value = [...selectedConfig.fields]
-    
-    loadConfigDialogVisible.value = false
-    ElMessage.success(`已加载配置"${selectedConfig.name}"`)
-  } catch (error) {
-    console.error('加载配置失败:', error)
-    ElMessage.error('加载配置失败: ' + (error as Error).message)
   }
 }
 
-const deleteLocalConfig = async (configId: string) => {
+// ===== 工具方法 =====
+const formatDate = (dateString) => {
+  if (!dateString) return '-'
   try {
-    await ElMessageBox.confirm(
-      '确定要删除这个本地配置吗？此操作不可恢复。',
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
-    localConfigs.value = localConfigs.value.filter(config => config.id !== configId)
-    localStorage.setItem(LOCAL_CONFIGS_KEY, JSON.stringify(localConfigs.value))
-    
-    ElMessage.success('配置已删除')
-  } catch (error) {
-    // 用户取消删除
+    return new Date(dateString).toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return '-'
   }
 }
 
-const deleteImportedConfig = async (configId: string) => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要删除这个导入配置吗？此操作不可恢复。',
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
-    importedConfigs.value = importedConfigs.value.filter(config => config.id !== configId)
-    localStorage.setItem(IMPORTED_CONFIGS_KEY, JSON.stringify(importedConfigs.value))
-    
-    ElMessage.success('配置已删除')
-  } catch (error) {
-    // 用户取消删除
-  }
-}
-
-// 步骤导航方法
-const nextStep = () => {
-  if (currentStep.value < 3) {
-    currentStep.value++
-  }
-}
-
-const prevStep = () => {
-  if (currentStep.value > 0) {
-    currentStep.value--
-  }
-}
-
-// 策略配置处理
-const handleStrategyNext = (config: any) => {
-  strategyConfig.value = config
-  nextStep()
-}
-
-const handleStrategyChange = (config: any) => {
-  strategyConfig.value = config
-}
-
-const handleFieldsChange = (newFields: any[]) => {
-  fields.value = newFields
-}
-
-// 工具方法
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString('zh-CN')
-}
-
-const getStrategyLabel = (strategy: string) => {
-  const labels: Record<string, string> = {
-    fixed: '固定数量',
-    range: '范围生成',
-    template: '模板生成'
-  }
-  return labels[strategy] || strategy
-}
-
-// 导出配置
+// ===== 占位符方法 =====
 const exportConfig = () => {
-  try {
-    const configData = {
-      name: `配置导出-${new Date().toLocaleString()}`,
-      description: '导出的配置文件',
-      strategyConfig: strategyConfig.value,
-      fields: fields.value,
-      exportedAt: new Date().toISOString(),
-      version: '1.0'
-    }
-    
-    const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `json-generator-config-${Date.now()}.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-    
-    ElMessage.success('配置文件已导出')
-  } catch (error) {
-    console.error('导出配置失败:', error)
-    ElMessage.error('导出配置失败')
-  }
+  ElMessage.info('导出配置功能开发中...')
 }
 
-// 清除所有配置
-const clearAllConfigs = async () => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要清除所有配置吗？此操作不可恢复。',
-      '确认清除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
+const clearAllConfigs = () => {
+  ElMessageBox.confirm('确定要清除所有配置吗？此操作不可恢复。', '确认清除', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
     localConfigs.value = []
     importedConfigs.value = []
-    localStorage.removeItem(LOCAL_CONFIGS_KEY)
-    localStorage.removeItem(IMPORTED_CONFIGS_KEY)
-    
+    saveLocalConfigs()
+    saveImportedConfigs()
     ElMessage.success('所有配置已清除')
-  } catch (error) {
-    // 用户取消操作
-  }
+  }).catch(() => {
+    // 用户取消
+  })
 }
 
-// 生成和导出方法（占位符，实际实现需要根据具体需求）
 const handleGenerate = () => {
   generating.value = true
-  // TODO: 实现数据生成逻辑
+  // 模拟生成数据
   setTimeout(() => {
     generating.value = false
-    generationResult.value = { success: true, count: 100 }
+    generationResult.value = { 
+      data: [], 
+      count: strategyConfig.value.count 
+    }
     ElMessage.success('数据生成完成')
   }, 2000)
 }
 
-const handleExport = (format: string) => {
-  // TODO: 实现数据导出逻辑
-  ElMessage.success(`数据已导出为 ${format} 格式`)
+const handleExport = (format) => {
+  ElMessage.info(`导出${format}格式功能开发中...`)
 }
+
+// ===== 初始化 =====
+// 组件挂载时加载配置
+loadLocalConfigs()
+loadImportedConfigs()
+
+// 监听配置变化
+watch([strategyConfig, fields], () => {
+  hasConfigChanged.value = true
+}, { deep: true })
 </script>
 
+// ... existing code ...
+
 <style scoped>
-/* CSS 变量定义 - 简化配色方案，减少渐变 */
-:root {
-  /* 主色调 - 简洁的蓝色系 */
-  --primary-color: #3b82f6;
-  --primary-light: #60a5fa;
-  --primary-dark: #1d4ed8;
-  --primary-hover: #2563eb;
-  
-  /* 辅助色彩 */
-  --secondary-color: #64748b;
-  --success-color: #10b981;
-  --warning-color: #f59e0b;
-  --danger-color: #ef4444;
-  --info-color: #06b6d4;
-  
-  /* 文字颜色 */
-  --text-primary: #1f2937;
-  --text-secondary: #4b5563;
-  --text-muted: #6b7280;
-  --text-light: #9ca3af;
-  --text-inverse: #ffffff;
-  
-  /* 背景色 - 简化层次 */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f9fafb;
-  --bg-tertiary: #f3f4f6;
-  --bg-accent: #fefefe;
-  
-  /* 边框颜色 */
-  --border-color: #e5e7eb;
-  --border-light: #f3f4f6;
-  --border-medium: #d1d5db;
-  --border-strong: #9ca3af;
-  
-  /* 阴影 */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  
-  /* 圆角 */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.375rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
-  
-  /* 间距系统 - 统一间距标准 */
-  --spacing-xs: 0.25rem;   /* 4px */
-  --spacing-sm: 0.5rem;    /* 8px */
-  --spacing-md: 0.75rem;   /* 12px */
-  --spacing-lg: 1rem;      /* 16px */
-  --spacing-xl: 1.5rem;    /* 24px */
-  --spacing-2xl: 2rem;     /* 32px */
-  --spacing-3xl: 3rem;     /* 48px */
-  
-  /* 字体大小 */
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-base: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
-}
-
-/* 基础样式重置 */
-* {
-  box-sizing: border-box;
-}
-
-/* 应用主体 - 移除复杂渐变 */
-.app {
+/* ===== 现代化应用布局 ===== */
+.app-layout {
   min-height: 100vh;
-  background: var(--bg-secondary);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  line-height: 1.6;
-  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  background: var(--color-background);
+  color: var(--color-text-primary);
 }
 
-/* 头部样式 - 简化设计 */
+/* ===== 现代化头部样式 ===== */
 .app-header {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border-color);
-  padding: var(--spacing-2xl) var(--spacing-lg);
-  text-align: center;
+  height: var(--header-height);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border-light);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: var(--z-sticky);
   box-shadow: var(--shadow-sm);
 }
 
-.app-header h1 {
-  margin: 0 0 var(--spacing-sm);
-  color: var(--primary-color);
-  font-size: clamp(var(--text-2xl), 4vw, var(--text-3xl));
-  font-weight: 700;
-  letter-spacing: -0.025em;
-}
-
-.app-header p {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: clamp(var(--text-sm), 2vw, var(--text-lg));
-  max-width: 600px;
+.header-container {
+  max-width: var(--app-max-width);
   margin: 0 auto;
-}
-
-/* 主内容区域 - 优化间距 */
-.app-main {
-  padding: var(--spacing-xl);
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-/* 步骤导航容器 - 简化背景 */
-.steps-container {
-  margin-bottom: var(--spacing-xl);
-  background: var(--bg-primary);
-  padding: var(--spacing-xl);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-color);
-}
-
-/* 步骤内容 - 统一间距 */
-.step-content {
-  background: var(--bg-primary);
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-2xl);
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--border-color);
-  min-height: 500px;
-}
-
-/* 步骤操作按钮 - 改善对齐和间距 */
-.step-actions {
+  height: 100%;
+  padding: 0 var(--space-8);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: var(--spacing-2xl);
-  padding-top: var(--spacing-xl);
-  border-top: 1px solid var(--border-color);
-  gap: var(--spacing-lg);
+  justify-content: space-between;
 }
 
-/* 对话框样式优化 */
-.config-dialog {
-  --el-dialog-border-radius: var(--radius-xl);
-}
-
-.config-form {
-  padding: var(--spacing-md) 0;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-md);
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border-light);
-}
-
-.config-tabs {
-  margin-bottom: var(--spacing-lg);
-}
-
-.config-list {
-  max-height: 60vh;
-  overflow-y: auto;
-  padding-right: var(--spacing-sm);
-}
-
-.config-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.config-list::-webkit-scrollbar-track {
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-sm);
-}
-
-.config-list::-webkit-scrollbar-thumb {
-  background: var(--border-medium);
-  border-radius: var(--radius-sm);
-}
-
-.config-list::-webkit-scrollbar-thumb:hover {
-  background: var(--border-strong);
-}
-
-.config-items {
+.header-brand {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  justify-content: center;
 }
 
-.config-item {
-  padding: var(--spacing-lg);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background: var(--bg-primary);
-}
-
-.config-item:hover {
-  border-color: var(--primary-color);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
-}
-
-.config-item.active {
-  border-color: var(--primary-color);
-  background: rgba(59, 130, 246, 0.05);
-  box-shadow: var(--shadow-md);
-}
-
-.config-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--spacing-md);
-  gap: var(--spacing-md);
-}
-
-.config-header h4 {
+.brand-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--primary);
   margin: 0;
-  color: var(--text-primary);
-  font-size: var(--text-base);
-  font-weight: 600;
-  line-height: 1.4;
+  line-height: var(--leading-tight);
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.config-description {
-  margin: 0 0 var(--spacing-md);
-  color: var(--text-secondary);
+.brand-subtitle {
   font-size: var(--text-sm);
-  line-height: 1.5;
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: var(--leading-normal);
+  font-weight: var(--font-medium);
 }
 
-.config-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-lg);
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.config-meta span {
+.header-actions {
   display: flex;
   align-items: center;
+  gap: var(--space-3);
+}
+
+/* ===== 现代化主体布局 ===== */
+.app-body {
+  flex: 1;
+  display: flex;
+  max-width: var(--app-max-width);
+  margin: 0 auto;
+  width: 100%;
+  min-height: calc(100vh - var(--header-height));
+}
+
+/* ===== 现代化侧边栏样式 ===== */
+.app-sidebar {
+  width: var(--sidebar-width-sm);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  border-right: 1px solid var(--color-border-light);
+  display: flex;
+  flex-direction: column;
+  transition: all var(--duration-300) var(--ease-out);
+  position: sticky;
+  top: var(--header-height);
+  height: calc(100vh - var(--header-height));
+  overflow: hidden;
+}
+
+.sidebar-collapsed {
+  width: 80px;
+}
+
+.sidebar-header {
+  padding: var(--space-6);
+  border-bottom: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 64px;
+  background: rgba(var(--primary-50), 0.3);
+}
+
+.sidebar-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0;
   white-space: nowrap;
+  opacity: 1;
+  transition: opacity var(--duration-200) var(--ease-out);
 }
 
-.empty-config {
-  text-align: center;
-  padding: var(--spacing-3xl);
-  color: var(--text-muted);
-  background: var(--bg-secondary);
+.sidebar-collapsed .sidebar-title {
+  opacity: 0;
+}
+
+.sidebar-toggle {
+  flex-shrink: 0;
   border-radius: var(--radius-lg);
-  border: 2px dashed var(--border-medium);
+  background: white;
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--duration-200) var(--ease-out);
+}
+
+.sidebar-toggle:hover {
+  box-shadow: var(--shadow-sm);
+  transform: scale(1.05);
+}
+
+/* ===== 现代化步骤导航 ===== */
+.steps-navigation {
+  flex: 1;
+  padding: var(--space-8) var(--space-6);
+  position: relative;
+  overflow-y: auto;
+}
+
+.progress-track {
+  position: absolute;
+  left: calc(var(--space-6) + 20px);
+  top: var(--space-12);
+  bottom: var(--space-12);
+  width: 3px;
+  background: var(--color-border-light);
+  border-radius: var(--radius-full);
+}
+
+.progress-fill {
+  width: 100%;
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  border-radius: var(--radius-full);
+  transition: height var(--duration-700) var(--ease-out);
+}
+
+.steps-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+  border-radius: var(--radius-xl);
+  cursor: default;
+  transition: all var(--duration-300) var(--ease-out);
+  position: relative;
+}
+
+.step-clickable {
+  cursor: pointer;
+}
+
+.step-clickable:hover {
+  background: rgba(var(--primary-50), 0.5);
+  transform: translateX(4px);
+}
+
+.step-active {
+  background: linear-gradient(135deg, var(--primary-50), var(--secondary-50));
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.step-marker {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  flex-shrink: 0;
+  transition: all var(--duration-300) var(--ease-out);
+  background: white;
+  color: var(--color-text-muted);
+  border: 2px solid var(--color-border);
+  box-shadow: var(--shadow-xs);
 }
 
-/* 深色模式支持 */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text-primary: #f9fafb;
-    --text-secondary: #d1d5db;
-    --text-muted: #9ca3af;
-    --text-light: #6b7280;
-    --text-inverse: #111827;
-    
-    --bg-primary: #1f2937;
-    --bg-secondary: #111827;
-    --bg-tertiary: #374151;
-    --bg-accent: #0f172a;
-    
-    --border-color: #374151;
-    --border-light: #1f2937;
-    --border-medium: #4b5563;
-    --border-strong: #6b7280;
-  }
-  
-  .app {
-    background: var(--bg-secondary);
-  }
-  
-  .app-header {
-    background: var(--bg-primary);
-    border-bottom-color: var(--border-color);
-  }
-  
-  .app-header h1 {
-    color: var(--primary-light);
-  }
+.step-active .step-marker,
+.step-completed .step-marker {
+  background: linear-gradient(135deg, var(--primary), var(--secondary));
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--shadow-md);
 }
 
-/* 响应式设计 - 改善移动端体验 */
-@media (max-width: 1024px) {
-  .app-main {
-    max-width: 100%;
-    padding: var(--spacing-lg);
+.step-content {
+  flex: 1;
+  min-width: 0;
+  opacity: 1;
+  transition: all var(--duration-200) var(--ease-out);
+}
+
+.sidebar-collapsed .step-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.step-title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-1);
+  line-height: var(--leading-tight);
+}
+
+.step-description {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: var(--leading-normal);
+}
+
+/* ===== 现代化主内容区 ===== */
+.app-main {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-background);
+  transition: margin-left var(--duration-300) var(--ease-out);
+}
+
+.main-expanded {
+  margin-left: 0;
+}
+
+.main-container {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* ===== 现代化页面区块 ===== */
+.home-section {
+  padding: var(--space-10);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.step-section {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.step-wrapper {
+  flex: 1;
+  background: white;
+  margin: var(--space-8);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-light);
+}
+
+/* ===== 现代化步骤头部 ===== */
+.step-header {
+  padding: var(--space-10) var(--space-10) var(--space-8);
+  border-bottom: 1px solid var(--color-border-light);
+  background: linear-gradient(135deg, var(--gray-50), rgba(var(--primary-50), 0.3));
+}
+
+.step-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.breadcrumb-separator {
+  color: var(--color-text-muted);
+  font-weight: var(--font-normal);
+}
+
+.breadcrumb-current {
+  color: var(--primary);
+  font-weight: var(--font-semibold);
+}
+
+.step-heading {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-3);
+  line-height: var(--leading-tight);
+  background: linear-gradient(135deg, var(--color-text-primary), var(--primary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.step-subtitle {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: var(--leading-relaxed);
+  font-weight: var(--font-medium);
+}
+
+/* ===== 现代化步骤内容 ===== */
+.step-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.step-panel {
+  padding: var(--space-10);
+  height: 100%;
+}
+
+/* ===== 现代化步骤操作 ===== */
+.step-actions {
+  padding: var(--space-8) var(--space-10);
+  border-top: 1px solid var(--color-border-light);
+  background: var(--gray-50);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+.actions-left,
+.actions-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ===== 响应式设计 ===== */
+
+/* 超小屏幕 (< 480px) */
+@media (max-width: 479px) {
+  .header-container {
+    padding: 0 var(--space-4);
+  }
+  
+  .brand-title {
+    font-size: var(--text-xl);
+  }
+  
+  .brand-subtitle {
+    font-size: var(--text-xs);
+  }
+  
+  .app-body {
+    flex-direction: column;
+  }
+  
+  .app-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border-light);
+    max-height: 240px;
+  }
+  
+  .sidebar-collapsed {
+    width: 100%;
+  }
+  
+  .steps-navigation {
+    padding: var(--space-4);
+  }
+  
+  .steps-list {
+    display: flex;
+    gap: var(--space-3);
+    overflow-x: auto;
+    padding-bottom: var(--space-3);
+  }
+  
+  .step-item {
+    flex-direction: column;
+    text-align: center;
+    min-width: 100px;
+    margin-bottom: 0;
+    padding: var(--space-3);
   }
   
   .step-content {
-    padding: var(--spacing-xl);
+    margin-top: var(--space-2);
+  }
+  
+  .step-description {
+    display: none;
+  }
+  
+  .progress-track {
+    display: none;
+  }
+  
+  .home-section {
+    padding: var(--space-4);
+  }
+  
+  .step-wrapper {
+    margin: var(--space-4);
+  }
+  
+  .step-header {
+    padding: var(--space-6);
+  }
+  
+  .step-heading {
+    font-size: var(--text-2xl);
+  }
+  
+  .step-subtitle {
+    font-size: var(--text-base);
+  }
+  
+  .step-panel {
+    padding: var(--space-6);
+  }
+  
+  .step-actions {
+    padding: var(--space-4);
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+  
+  .actions-left,
+  .actions-right {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .step-actions .el-button {
+    flex: 1;
   }
 }
 
-@media (max-width: 768px) {
-  .app-header {
-    padding: var(--spacing-xl) var(--spacing-lg);
+/* 小屏幕 (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  .app-body {
+    flex-direction: column;
   }
   
-  .app-main {
-    padding: var(--spacing-md);
+  .app-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--color-border-light);
   }
   
-  .step-content {
-    padding: var(--spacing-lg);
-    min-height: auto;
+  .sidebar-collapsed {
+    width: 100%;
   }
   
-  .steps-container {
-    padding: var(--spacing-lg);
+  .steps-list {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .step-item {
+    flex: 1;
+    text-align: center;
+    flex-direction: column;
+  }
+  
+  .progress-track {
+    left: 50%;
+    transform: translateX(-50%);
+    top: var(--space-6);
+    bottom: auto;
+    height: 3px;
+    width: calc(100% - var(--space-8));
+  }
+  
+  .progress-fill {
+    width: calc(var(--step-progress) * 100%);
+    height: 100%;
+  }
+  
+  .home-section {
+    padding: var(--space-6);
+  }
+  
+  .step-wrapper {
+    margin: var(--space-4);
   }
   
   .step-actions {
     flex-direction: column;
-    gap: var(--spacing-md);
   }
   
-  .step-actions .el-button {
+  .actions-left,
+  .actions-right {
     width: 100%;
-  }
-  
-  .config-meta {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-  
-  .config-header {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-    align-items: flex-start;
-  }
-  
-  .dialog-footer {
-    flex-direction: column-reverse;
-    gap: var(--spacing-sm);
-  }
-  
-  .dialog-footer .el-button {
-    width: 100%;
+    justify-content: center;
   }
 }
 
-@media (max-width: 480px) {
-  .app-header {
-    padding: var(--spacing-lg) var(--spacing-md);
+/* 中等屏幕 (768px - 1023px) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-sidebar {
+    width: 300px;
   }
   
-  .app-main {
-    padding: var(--spacing-sm);
+  .home-section {
+    padding: var(--space-8);
   }
   
-  .step-content {
-    padding: var(--spacing-md);
+  .step-wrapper {
+    margin: var(--space-6);
   }
   
-  .steps-container {
-    padding: var(--spacing-md);
+  .step-header {
+    padding: var(--space-8);
   }
   
-  .config-item {
-    padding: var(--spacing-md);
+  .step-panel {
+    padding: var(--space-8);
   }
 }
 
-/* 高对比度模式支持 */
-@media (prefers-contrast: high) {
-  :root {
-    --border-color: #000000;
-    --border-medium: #000000;
-    --text-muted: var(--text-secondary);
-  }
-  
-  .config-item {
-    border-width: 2px;
-  }
-  
-  .config-item:hover,
-  .config-item.active {
-    border-width: 3px;
+/* 大屏幕 (1024px - 1279px) */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .app-sidebar {
+    width: var(--sidebar-width-sm);
   }
 }
 
-/* 减少动画模式支持 */
+/* 超大屏幕 (≥ 1280px) */
+@media (min-width: 1280px) {
+  .app-sidebar {
+    width: var(--sidebar-width-md);
+  }
+  
+  .home-section {
+    padding: var(--space-12);
+  }
+  
+  .step-wrapper {
+    margin: var(--space-10);
+  }
+  
+  .step-header {
+    padding: var(--space-12) var(--space-12) var(--space-10);
+  }
+  
+  .step-heading {
+    font-size: var(--text-5xl);
+  }
+  
+  .step-panel {
+    padding: var(--space-12);
+  }
+  
+  .step-actions {
+    padding: var(--space-10) var(--space-12);
+  }
+}
+
+/* ===== 无障碍性增强 ===== */
 @media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-  
-  .config-item:hover {
-    transform: none;
+  .app-sidebar,
+  .step-marker,
+  .progress-fill,
+  .step-item,
+  .sidebar-toggle {
+    transition: none;
   }
 }
 
-/* 焦点样式 - 改善可访问性 */
-.el-button:focus-visible,
-.config-item:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-/* 动画效果 - 简化 */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-.step-content {
-  animation: fadeIn 0.3s ease-out;
-}
-
-/* 打印样式 */
+/* ===== 打印样式 ===== */
 @media print {
-  .app-header,
+  .app-sidebar,
   .step-actions,
-  .dialog-footer {
+  .header-actions {
     display: none;
   }
   
-  .app {
-    background: white;
+  .app-main {
+    margin-left: 0;
   }
   
-  .step-content {
+  .step-wrapper {
     box-shadow: none;
-    border: 1px solid #000;
+    border: 2px solid var(--gray-400);
+    margin: 0;
   }
 }
 </style>
